@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	_ "github.com/codyguo/godaemon"
 	"github.com/fsnotify/fsnotify"
 	"github.com/natefinch/lumberjack"
 	"github.com/spf13/viper"
@@ -72,7 +73,7 @@ func main() {
 		}
 		fmt.Println("Nested directory created successfully!")
 	}
-	go jk()
+	jk()
 	//InitLogger()
 
 }

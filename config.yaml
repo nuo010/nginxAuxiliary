@@ -1,6 +1,6 @@
 nginx:
-  confPath: C:\Users\Erin\Desktop\新建文件夹\1.txt
+  confPath: /usr/local/nginx/conf/nginx.conf
   logPath:
 auxiliary:
-  confPath: C:\Users\Erin\Desktop\新建文件夹\1\
+  confPath: /usr/local/nginx/conf/back/
   logPath:

@@ -3,6 +3,7 @@ module nginxAuxiliary
 go 1.20
 
 require (
+	github.com/codyguo/godaemon v0.0.0-20200413142854-c36b39fdd071
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/spf13/viper v1.16.0
