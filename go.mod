@@ -5,7 +5,7 @@ go 1.20
 require (
 	github.com/codyguo/godaemon v0.0.0-20200413142854-c36b39fdd071
 	github.com/fsnotify/fsnotify v1.6.0
-	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/spf13/viper v1.16.0
 	go.uber.org/zap v1.21.0
 )
@@ -25,6 +25,5 @@ require (
 	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

@@ -1,6 +1,8 @@
 nginx:
   confPath: /usr/local/nginx/conf/nginx.conf
-  logPath:
+  logPath: /usr/local/nginx/logs
 auxiliary:
   confPath: /usr/local/nginx/conf/back/
-  logPath:
+  logPath: /usr/local/nginx/logs/oldlogs/
+back:
+  day: 15

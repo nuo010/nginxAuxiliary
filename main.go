@@ -5,14 +5,15 @@ import (
 	"fmt"
 	_ "github.com/codyguo/godaemon"
 	"github.com/fsnotify/fsnotify"
-	"github.com/natefinch/lumberjack"
+	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path"
+	"strings"
 	"time"
 )
 
@@ -53,29 +54,46 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 
 	return io.Copy(writer, reader)
 }
-func main() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
-	err := viper.ReadInConfig()
-	if err != nil {
-		fmt.Println("读取配置文件错误!")
-	}
 
-	filePath, err := PathExists(viper.GetString("auxiliary.confPath"))
-	if err != nil {
-		return
-	}
-	if !filePath {
-		err := os.MkdirAll(viper.GetString("auxiliary.confPath"), 0755)
+// 返回一个支持至 秒 级别的 cron
+func newWithSeconds() *cron.Cron {
+	secondParser := cron.NewParser(cron.Second | cron.Minute |
+		cron.Hour | cron.Dom | cron.Month | cron.DowOptional | cron.Descriptor)
+	return cron.New(cron.WithParser(secondParser), cron.WithChain())
+}
+
+// 日志归档
+func logC() {
+	c := newWithSeconds()
+	spec := "1 1 1 * * ?"
+	c.AddFunc(spec, func() {
+		date := time.Now().AddDate(0, 0, -1).Format("20060102")
+		err := os.Rename(viper.GetString("nginx.logPath")+"/access.log", viper.GetString("auxiliary.logPath")+date+"_access.log")
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
-		fmt.Println("Nested directory created successfully!")
-	}
-	jk()
-	//InitLogger()
+		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", viper.GetString("auxiliary.logPath")+date+"_error.log")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		// 使用ioutil一次性读取文件
+		data, err := os.ReadFile("/usr/local/nginx/logs/nginx.pid")
+		if err != nil {
+			fmt.Println("read file err:", err.Error())
+			return
+		}
 
+		// 打印文件内容
+		fmt.Println(string(data))
+		err = exec.Command("bash", "-c", "kill -USR1 "+strings.Replace(string(data), "\n", "", 1)).Run()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	})
+	c.Start()
 }
 
 func jk() {
@@ -119,28 +137,40 @@ func jk() {
 	}
 	<-done
 }
-func InitLogger() {
-	writeSyncer := getLogWriter()
-	encoder := getEncoder()
-	core := zapcore.NewCore(encoder, writeSyncer, zapcore.DebugLevel)
-	logger := zap.New(core, zap.AddCaller())
-	sugarLogger = logger.Sugar()
-	defer sugarLogger.Sync()
-}
-func getEncoder() zapcore.Encoder {
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	return zapcore.NewConsoleEncoder(encoderConfig)
-}
-
-func getLogWriter() zapcore.WriteSyncer {
-	lumberJackLogger := &lumberjack.Logger{
-		Filename:   "./test.log",
-		MaxSize:    50,
-		MaxBackups: 5,
-		MaxAge:     30,
-		Compress:   false,
+func initFile() {
+	filePath, err := PathExists(viper.GetString("auxiliary.confPath"))
+	if err != nil {
+		return
 	}
-	return zapcore.AddSync(lumberJackLogger)
+	if !filePath {
+		err := os.MkdirAll(viper.GetString("auxiliary.confPath"), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("创建配置文件备份文件夹成功!")
+	}
+	filePath, err = PathExists(viper.GetString("auxiliary.logPath"))
+	if err != nil {
+		return
+	}
+	if !filePath {
+		err := os.MkdirAll(viper.GetString("auxiliary.logPath"), 0755)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("创建日志归档文件夹成功!")
+	}
+}
+func main() {
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	err := viper.ReadInConfig()
+	if err != nil {
+		fmt.Println("读取配置文件错误!")
+	}
+	initFile()
+
+	go jk()
+	go logC()
 }
