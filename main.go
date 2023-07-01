@@ -173,4 +173,5 @@ func main() {
 
 	go jk()
 	go logC()
+	select {}
 }
