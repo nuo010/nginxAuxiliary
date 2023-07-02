@@ -7,17 +7,13 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/robfig/cron/v3"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 	"io"
-	"log"
 	"os"
 	"os/exec"
 	"path"
 	"strings"
 	"time"
 )
-
-var sugarLogger *zap.SugaredLogger
 
 // PathExists 判断一个文件或文件夹是否存在
 // 输入文件路径，根据返回的bool值来判断文件或文件夹是否存在
@@ -99,7 +95,7 @@ func logC() {
 func jk() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal("创建观察者失败: ", err)
+		fmt.Println("创建观察者失败: ", err)
 	}
 	defer func(watcher *fsnotify.Watcher) {
 		err := watcher.Close()
@@ -116,7 +112,7 @@ func jk() {
 				if !ok {
 					return
 				}
-				log.Printf("%s %s\n", event.Name, event.Op)
+				fmt.Println("%s %s\n", event.Name, event.Op)
 				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(event.Name), event.Name)
 				if err != nil {
 					fmt.Println("copy文件错误")
@@ -127,13 +123,13 @@ func jk() {
 				if !ok {
 					return
 				}
-				log.Println("error: ", err)
+				fmt.Println("error: ", err)
 			}
 		}
 	}()
 	err = watcher.Add(viper.GetString("nginx.confPath"))
 	if err != nil {
-		log.Fatal("add failed:", err)
+		fmt.Println("add failed:", err)
 	}
 	<-done
 }
