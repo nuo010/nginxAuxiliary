@@ -142,6 +142,7 @@ func initFile() {
 		err := os.MkdirAll(viper.GetString("auxiliary.confPath"), 0755)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 		fmt.Println("创建配置文件备份文件夹成功!")
 	}
@@ -153,6 +154,7 @@ func initFile() {
 		err := os.MkdirAll(viper.GetString("auxiliary.logPath"), 0755)
 		if err != nil {
 			fmt.Println(err)
+			return
 		}
 		fmt.Println("创建日志归档文件夹成功!")
 	}
@@ -164,6 +166,7 @@ func main() {
 	err := viper.ReadInConfig()
 	if err != nil {
 		fmt.Println("读取配置文件错误!")
+		return
 	}
 	initFile()
 
