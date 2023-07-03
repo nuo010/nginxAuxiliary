@@ -170,6 +170,7 @@ func main() {
 	}
 	initFile()
 	go jk()
+
 	go logC()
 	select {}
 }
