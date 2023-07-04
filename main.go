@@ -6,6 +6,7 @@ import (
 	_ "github.com/codyguo/godaemon"
 	"github.com/fsnotify/fsnotify"
 	"github.com/robfig/cron/v3"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
 	"os"
@@ -160,16 +161,37 @@ func initFile() {
 	}
 }
 func main() {
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
-	err := viper.ReadInConfig()
-	if err != nil {
-		fmt.Println("读取配置文件错误!")
-		return
+	logrus.SetLevel(logrus.DebugLevel)
+	// 设置日志输出到什么地方去
+	// 将日志输出到标准输出，就是直接在控制台打印出来。
+	// 先打开一个日志文件
+	file, err := os.OpenFile("logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		// 设置将日志输出到文件
+		logrus.SetOutput(file)
+	} else {
+		logrus.Info("打开日志文件失败，默认输出到stderr")
 	}
-	initFile()
-	go jk()
-	go logC()
-	select {}
+	//logrus.SetOutput(os.Stdout)
+	// 设置为true则显示日志在代码什么位置打印的
+	//log.SetReportCaller(true)
+
+	// 设置日志以json格式输出， 如果不设置默认以text格式输出
+	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.Debug("调试信息")
+	logrus.Info("提示信息")
+	logrus.Warn("警告信息")
+	logrus.Error("错误信息")
+	//viper.SetConfigName("config")
+	//viper.SetConfigType("yaml")
+	//viper.AddConfigPath("./")
+	//err := viper.ReadInConfig()
+	//if err != nil {
+	//	fmt.Println("读取配置文件错误!")
+	//	return
+	//}
+	//initFile()
+	//go jk()
+	//go logC()
+	//select {}
 }
