@@ -63,6 +63,7 @@ func newWithSeconds() *cron.Cron {
 
 // 日志归档
 func logC() {
+	logrus.Info("开启日志归档!")
 	c := newWithSeconds()
 	spec := "1 1 1 * * ?"
 	c.AddFunc(spec, func() {
@@ -73,12 +74,14 @@ func logC() {
 			logrus.Error("归档Nginx access日志错误!")
 			return
 		}
+		logrus.Debug("归档access日志成功!")
 		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", viper.GetString("auxiliary.logPath")+date+"_error.log")
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx error日志错误!")
 			return
 		}
+		logrus.Debug("归档error日志成功!")
 		// 使用ioutil一次性读取文件
 		data, err := os.ReadFile("/usr/local/nginx/logs/nginx.pid")
 		if err != nil {
@@ -88,18 +91,19 @@ func logC() {
 		}
 
 		// 打印文件内容
-		fmt.Println(string(data))
 		err = exec.Command("bash", "-c", "kill -USR1 "+strings.Replace(string(data), "\n", "", 1)).Run()
 		if err != nil {
 			logrus.Error("调用nginx打印日志命令错误!")
 			fmt.Println(err)
 			return
 		}
+		logrus.Debug("重置Nginx日志成功!")
 	})
 	c.Start()
 }
 
 func jk() {
+	logrus.Info("开启文件监控!")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		logrus.Debug("创建观察者失败: ", err)
@@ -119,7 +123,7 @@ func jk() {
 				if !ok {
 					return
 				}
-				fmt.Println("%s %s\n", event.Name, event.Op)
+				logrus.Debug("文件变动: %s %s", event.Name, event.Op)
 				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(event.Name), event.Name)
 				if err != nil {
 					fmt.Println("copy文件错误")
@@ -127,6 +131,7 @@ func jk() {
 					logrus.Error("备份文件错误!", err)
 					return
 				}
+				logrus.Debug("备份文件成功!")
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					return
@@ -139,6 +144,7 @@ func jk() {
 	if err != nil {
 		fmt.Println("add failed:", err)
 	}
+	logrus.Debug("添加监控成功:", viper.GetString("nginx.confPath"))
 	<-done
 }
 func initFile() {
@@ -170,7 +176,7 @@ func initFile() {
 	}
 }
 func main() {
-	//logrus.SetLevel(logrus.WarnLevel)
+	logrus.SetLevel(logrus.DebugLevel)
 	// 设置日志输出到什么地方去
 	// 将日志输出到标准输出，就是直接在控制台打印出来。
 	// 先打开一个日志文件
@@ -197,7 +203,9 @@ func main() {
 		return
 	}
 	initFile()
+	logrus.Info("初始化完成!")
 	go jk()
 	go logC()
+	logrus.Info("开启监控成功!")
 	select {}
 }
