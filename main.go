@@ -32,6 +32,7 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 	srcfile, err := os.Open(srcFileName)
 	if err != nil {
 		fmt.Println("open file error")
+		logrus.Error("打开文件错误!")
 		return
 	}
 	defer srcfile.Close()
@@ -43,6 +44,7 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 	dstFile, err := os.OpenFile(dstFileName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
 	if err != nil {
 		fmt.Println("open fil error")
+		logrus.Error("打开文件错误!")
 		return
 	}
 	defer dstFile.Close()
@@ -68,17 +70,20 @@ func logC() {
 		err := os.Rename(viper.GetString("nginx.logPath")+"/access.log", viper.GetString("auxiliary.logPath")+date+"_access.log")
 		if err != nil {
 			fmt.Println(err)
+			logrus.Error("归档Nginx access日志错误!")
 			return
 		}
 		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", viper.GetString("auxiliary.logPath")+date+"_error.log")
 		if err != nil {
 			fmt.Println(err)
+			logrus.Error("归档Nginx error日志错误!")
 			return
 		}
 		// 使用ioutil一次性读取文件
 		data, err := os.ReadFile("/usr/local/nginx/logs/nginx.pid")
 		if err != nil {
 			fmt.Println("read file err:", err.Error())
+			logrus.Error("读取nginx pid 错误")
 			return
 		}
 
@@ -86,6 +91,7 @@ func logC() {
 		fmt.Println(string(data))
 		err = exec.Command("bash", "-c", "kill -USR1 "+strings.Replace(string(data), "\n", "", 1)).Run()
 		if err != nil {
+			logrus.Error("调用nginx打印日志命令错误!")
 			fmt.Println(err)
 			return
 		}
@@ -96,7 +102,7 @@ func logC() {
 func jk() {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		fmt.Println("创建观察者失败: ", err)
+		logrus.Debug("创建观察者失败: ", err)
 	}
 	defer func(watcher *fsnotify.Watcher) {
 		err := watcher.Close()
@@ -118,6 +124,7 @@ func jk() {
 				if err != nil {
 					fmt.Println("copy文件错误")
 					fmt.Println(err)
+					logrus.Error("备份文件错误!", err)
 					return
 				}
 			case err, ok := <-watcher.Errors:
@@ -146,6 +153,7 @@ func initFile() {
 			return
 		}
 		fmt.Println("创建配置文件备份文件夹成功!")
+		logrus.Debug("创建配置文件备份文件夹成功!")
 	}
 	filePath, err = PathExists(viper.GetString("auxiliary.logPath"))
 	if err != nil {
@@ -158,10 +166,11 @@ func initFile() {
 			return
 		}
 		fmt.Println("创建日志归档文件夹成功!")
+		logrus.Debug("创建日志归档文件夹成功!")
 	}
 }
 func main() {
-	logrus.SetLevel(logrus.DebugLevel)
+	//logrus.SetLevel(logrus.WarnLevel)
 	// 设置日志输出到什么地方去
 	// 将日志输出到标准输出，就是直接在控制台打印出来。
 	// 先打开一个日志文件
@@ -178,20 +187,17 @@ func main() {
 
 	// 设置日志以json格式输出， 如果不设置默认以text格式输出
 	logrus.SetFormatter(&logrus.JSONFormatter{})
-	logrus.Debug("调试信息")
-	logrus.Info("提示信息")
-	logrus.Warn("警告信息")
-	logrus.Error("错误信息")
-	//viper.SetConfigName("config")
-	//viper.SetConfigType("yaml")
-	//viper.AddConfigPath("./")
-	//err := viper.ReadInConfig()
-	//if err != nil {
-	//	fmt.Println("读取配置文件错误!")
-	//	return
-	//}
-	//initFile()
-	//go jk()
-	//go logC()
-	//select {}
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath("./")
+	err = viper.ReadInConfig()
+	if err != nil {
+		fmt.Println("读取配置文件错误!")
+		logrus.Error("读取配置文件错误!")
+		return
+	}
+	initFile()
+	go jk()
+	go logC()
+	select {}
 }
