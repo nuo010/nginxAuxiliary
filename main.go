@@ -123,7 +123,7 @@ func jk() {
 				if !ok {
 					return
 				}
-				logrus.Debug("文件变动: %s %s", event.Name, event.Op)
+				logrus.Debug("发现文件变动:", event.Name, "变动类型", event.Op)
 				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(event.Name), event.Name)
 				if err != nil {
 					fmt.Println("copy文件错误")
