@@ -18,6 +18,8 @@ import (
 	"time"
 )
 
+var logPath = "logrus.log"
+
 // PathExists 判断一个文件或文件夹是否存在
 // 输入文件路径，根据返回的bool值来判断文件或文件夹是否存在
 func PathExists(path string) (bool, error) {
@@ -57,6 +59,13 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 	return int64(len(file1)), nil
 }
 
+func delBack() {
+	files, _ := os.ReadDir("C:\\Users\\Erin\\Desktop\\1")
+	for _, f := range files {
+		fmt.Println(f.Name())
+	}
+}
+
 // 返回一个支持至 秒 级别的 cron
 func newWithSeconds() *cron.Cron {
 	secondParser := cron.NewParser(cron.Second | cron.Minute |
@@ -68,17 +77,24 @@ func newWithSeconds() *cron.Cron {
 func logC() {
 	logrus.Info("开启日志归档!")
 	c := newWithSeconds()
-	spec := "1 1 1 * * ?"
-	c.AddFunc(spec, func() {
+	c.AddFunc("1 1 1 * * ?", func() {
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
-		err := os.Rename(viper.GetString("nginx.logPath")+"/access.log", viper.GetString("auxiliary.logPath")+date+"_access.log")
+		logFilePath := viper.GetString("auxiliary.logPath") + date
+		err := os.Mkdir(logFilePath, os.ModePerm)
+		if err != nil {
+			logrus.Error("创建Nginx归档目录失败!")
+			return
+		} else {
+			logrus.Debug("创建Nginx归档目录成功!,", logFilePath)
+		}
+		err = os.Rename(viper.GetString("nginx.logPath")+"/access.log", logFilePath+"/access.log")
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx access日志错误!")
 			return
 		}
 		logrus.Debug("归档access日志成功!")
-		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", viper.GetString("auxiliary.logPath")+date+"_error.log")
+		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", logFilePath+"/error.log")
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx error日志错误!")
@@ -92,7 +108,6 @@ func logC() {
 			logrus.Error("读取nginx pid 错误")
 			return
 		}
-
 		// 打印文件内容
 		err = exec.Command("bash", "-c", "kill -USR1 "+strings.Replace(string(data), "\n", "", 1)).Run()
 		if err != nil {
@@ -102,6 +117,14 @@ func logC() {
 		}
 		logrus.Debug("重置Nginx日志成功!")
 	})
+	//c.AddFunc("1 1 1 1 * ?", func() {
+	//	err := os.Truncate(logPath, 0)
+	//	if err != nil {
+	//		logrus.Error("清理日志错误!")
+	//		return
+	//	}
+	//	logrus.Error("清理软件运行日志成功!")
+	//})
 	c.Start()
 }
 
@@ -133,26 +156,24 @@ func jk() {
 				logrus.Debug("发现文件变动:", event.Name, "变动类型", event.Op)
 				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(event.Name), event.Name)
 				if err != nil {
-					fmt.Println("copy文件错误")
-					fmt.Println(err)
 					logrus.Error("备份文件错误!", err)
-					return
+				} else {
+					logrus.Debug("备份文件成功!")
 				}
-				logrus.Debug("备份文件成功!")
 			case err, ok := <-watcher.Errors:
 				if !ok {
 					logrus.Error("文件监听错误:", err)
 					return
 				}
-				logrus.Error("error: ", err)
 			}
 		}
 	}()
 	err = watcher.Add(viper.GetString("nginx.confPath"))
 	if err != nil {
-		fmt.Println("add failed:", err)
+		logrus.Error("添加监控失败:", viper.GetString("nginx.confPath"))
+	} else {
+		logrus.Debug("添加监控成功:", viper.GetString("nginx.confPath"))
 	}
-	logrus.Debug("添加监控成功:", viper.GetString("nginx.confPath"))
 	<-done
 	logrus.Info("文件监控退出!")
 }
