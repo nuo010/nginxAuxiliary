@@ -44,9 +44,15 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 	defer file.Close()
 	//写入文件时，使用带缓存的 *Writer
 	write := bufio.NewWriter(file)
-	write.WriteString(string(file1))
+	_, err = write.WriteString(string(file1))
+	if err != nil {
+		return 0, err
+	}
 	//Flush将缓存的文件真正写入到文件中
-	write.Flush()
+	err = write.Flush()
+	if err != nil {
+		return 0, err
+	}
 
 	return int64(len(file1)), nil
 }
