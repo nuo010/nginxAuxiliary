@@ -163,6 +163,9 @@ func FileMD5(filePath string) (string, error) {
 }
 func jk2() {
 	logrus.Info("开启文件监控!")
+	defer func() {
+		logrus.Error("文件监控异常退出!")
+	}()
 	var md5Text string
 	for {
 		time.Sleep(5 * time.Second)
@@ -189,6 +192,7 @@ func initFile() {
 		err := os.MkdirAll(viper.GetString("auxiliary.confPath"), 0755)
 		if err != nil {
 			fmt.Println(err)
+			logrus.Error(err)
 			return
 		}
 		fmt.Println("创建配置文件备份文件夹成功!")
@@ -202,6 +206,7 @@ func initFile() {
 		err := os.MkdirAll(viper.GetString("auxiliary.logPath"), 0755)
 		if err != nil {
 			fmt.Println(err)
+			logrus.Error(err)
 			return
 		}
 		fmt.Println("创建日志归档文件夹成功!")
@@ -235,11 +240,10 @@ func main() {
 		logrus.Error("读取配置文件错误!")
 		return
 	}
-	//initFile()
+	initFile()
 	logrus.Info("初始化完成!")
 	//go jk()
 	go jk2()
 	go logC()
-	logrus.Info("开启监控成功!")
 	select {}
 }
