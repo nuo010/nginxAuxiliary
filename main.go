@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
 	_ "github.com/codyguo/godaemon"
 	"github.com/fsnotify/fsnotify"
@@ -29,29 +28,27 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 func CopyFile(dstFileName string, srcFileName string) (written int64, err error) {
-	srcfile, err := os.Open(srcFileName)
-	if err != nil {
-		fmt.Println("open file error")
-		logrus.Error("打开文件错误!")
-		return
+	_, _ = os.Create(dstFileName)
+	file1, err1 := os.Open(dstFileName)
+	if err1 != nil {
+		fmt.Println(err1)
 	}
-	defer srcfile.Close()
-
-	//通过srcfile，获取到reader
-	reader := bufio.NewReader(srcfile)
-
-	//打开dstFileName，因为这个文件可能不存在，所以不能使用os.open打开
-	dstFile, err := os.OpenFile(dstFileName, os.O_CREATE|os.O_WRONLY, os.ModePerm)
-	if err != nil {
-		fmt.Println("open fil error")
-		logrus.Error("打开文件错误!")
-		return
+	// 创建目标文件
+	file2, err2 := os.OpenFile(srcFileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
+	if err2 != nil {
+		fmt.Println(err2)
 	}
-	defer dstFile.Close()
-	//通过dstFile，获取writer
-	writer := bufio.NewWriter(dstFile)
+	//使用结束关闭文件
+	defer file1.Close()
+	defer file2.Close()
+	n, e := io.Copy(file2, file1)
+	if e != nil {
+		fmt.Println(e)
+	} else {
+		fmt.Println("拷贝成功。。。，拷贝字节数：", n)
+	}
 
-	return io.Copy(writer, reader)
+	return n, nil
 }
 
 // 返回一个支持至 秒 级别的 cron
@@ -103,6 +100,8 @@ func logC() {
 }
 
 func jk() {
+	//问题：当使用vi或vim编辑被监视的文件（如config.conf）时，我希望它会触发Write Event。但是，实际上，它会触发重命名，从而导致原始文件无效。
+	// vim实际上创建了一个临时文件，删除现有文件，并在保存时用临时文件替换它。
 	logrus.Info("开启文件监控!")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
@@ -111,6 +110,8 @@ func jk() {
 	defer func(watcher *fsnotify.Watcher) {
 		err := watcher.Close()
 		if err != nil {
+			logrus.Error("观察者退出失败:", err)
+			return
 		}
 	}(watcher)
 
@@ -134,9 +135,10 @@ func jk() {
 				logrus.Debug("备份文件成功!")
 			case err, ok := <-watcher.Errors:
 				if !ok {
+					logrus.Error("文件监听错误:", err)
 					return
 				}
-				fmt.Println("error: ", err)
+				logrus.Error("error: ", err)
 			}
 		}
 	}()
@@ -146,6 +148,10 @@ func jk() {
 	}
 	logrus.Debug("添加监控成功:", viper.GetString("nginx.confPath"))
 	<-done
+	logrus.Info("文件监控退出!")
+}
+func jk2() {
+
 }
 func initFile() {
 	filePath, err := PathExists(viper.GetString("auxiliary.confPath"))
@@ -202,10 +208,11 @@ func main() {
 		logrus.Error("读取配置文件错误!")
 		return
 	}
-	initFile()
+	//initFile()
 	logrus.Info("初始化完成!")
 	go jk()
-	go logC()
+	//go logC()
 	logrus.Info("开启监控成功!")
+	logrus.Error("开启监控成功!")
 	select {}
 }
