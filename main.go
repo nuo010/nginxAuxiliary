@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	_ "github.com/codyguo/godaemon"
 	"github.com/fsnotify/fsnotify"
@@ -150,8 +152,33 @@ func jk() {
 	<-done
 	logrus.Info("文件监控退出!")
 }
+func FileMD5(filePath string) (string, error) {
+	file, err := os.Open(filePath)
+	if err != nil {
+		return "", err
+	}
+	hash := md5.New()
+	_, _ = io.Copy(hash, file)
+	return hex.EncodeToString(hash.Sum(nil)), nil
+}
 func jk2() {
-
+	logrus.Info("开启文件监控!")
+	var md5Text string
+	for {
+		time.Sleep(5 * time.Second)
+		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
+		if err == nil {
+			if md5Text != fileMD5 {
+				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
+				if err != nil {
+					logrus.Debug("备份文件错误!", err)
+				} else {
+					logrus.Debug("备份文件成功!")
+					md5Text = fileMD5
+				}
+			}
+		}
+	}
 }
 func initFile() {
 	filePath, err := PathExists(viper.GetString("auxiliary.confPath"))
@@ -210,9 +237,9 @@ func main() {
 	}
 	//initFile()
 	logrus.Info("初始化完成!")
-	go jk()
-	//go logC()
+	//go jk()
+	go jk2()
+	go logC()
 	logrus.Info("开启监控成功!")
-	logrus.Error("开启监控成功!")
 	select {}
 }
