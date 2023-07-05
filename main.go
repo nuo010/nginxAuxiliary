@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
@@ -29,28 +30,25 @@ func PathExists(path string) (bool, error) {
 	}
 	return false, err
 }
+
+// 新的文件, 旧文件
 func CopyFile(dstFileName string, srcFileName string) (written int64, err error) {
 	_, _ = os.Create(dstFileName)
-	file1, err1 := os.Open(dstFileName)
-	if err1 != nil {
-		fmt.Println(err1)
+	file1, _ := os.ReadFile(srcFileName)
+	file, err := os.OpenFile(dstFileName, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		logrus.Error("文件打开失败", err)
+		return 0, err
 	}
-	// 创建目标文件
-	file2, err2 := os.OpenFile(srcFileName, os.O_RDWR|os.O_CREATE, os.ModePerm)
-	if err2 != nil {
-		fmt.Println(err2)
-	}
-	//使用结束关闭文件
-	defer file1.Close()
-	defer file2.Close()
-	n, e := io.Copy(file2, file1)
-	if e != nil {
-		fmt.Println(e)
-	} else {
-		fmt.Println("拷贝成功。。。，拷贝字节数：", n)
-	}
+	//及时关闭file句柄
+	defer file.Close()
+	//写入文件时，使用带缓存的 *Writer
+	write := bufio.NewWriter(file)
+	write.WriteString(string(file1))
+	//Flush将缓存的文件真正写入到文件中
+	write.Flush()
 
-	return n, nil
+	return int64(len(file1)), nil
 }
 
 // 返回一个支持至 秒 级别的 cron
