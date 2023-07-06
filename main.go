@@ -243,7 +243,7 @@ func main() {
 	// 设置日志输出到什么地方去
 	// 将日志输出到标准输出，就是直接在控制台打印出来。
 	// 先打开一个日志文件
-	file, err := os.OpenFile("logrus.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		// 设置将日志输出到文件
 		logrus.SetOutput(file)
