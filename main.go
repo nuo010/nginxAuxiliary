@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
@@ -78,6 +79,7 @@ func logC() {
 	logrus.Info("开启日志归档!")
 	c := newWithSeconds()
 	c.AddFunc("1 1 1 * * ?", func() {
+		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -30).Format("20060102"))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := viper.GetString("auxiliary.logPath") + date
 		err := os.Mkdir(logFilePath, os.ModePerm)
@@ -102,7 +104,7 @@ func logC() {
 		}
 		logrus.Debug("归档error日志成功!")
 		// 使用ioutil一次性读取文件
-		data, err := os.ReadFile("/usr/local/nginx/logs/nginx.pid")
+		data, err := os.ReadFile(viper.GetString("nginx.pidPath"))
 		if err != nil {
 			fmt.Println("read file err:", err.Error())
 			logrus.Error("读取nginx pid 错误")
@@ -197,6 +199,8 @@ func jk2() {
 		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
 		if err == nil {
 			if md5Text != fileMD5 {
+				// 清理备份
+				rmConfBack(viper.GetString("auxiliary.confPath"))
 				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
 				if err != nil {
 					logrus.Debug("备份文件错误!", err)
@@ -238,6 +242,45 @@ func initFile() {
 		logrus.Debug("创建日志归档文件夹成功!")
 	}
 }
+func rmDir(dirPath string) {
+	exists, err := PathExists(dirPath)
+	if err == nil && exists {
+		logrus.Debug("删除文件夹,", dirPath)
+		dirInfo, err := os.Stat(dirPath)
+		if err != nil {
+			logrus.Error("读取目录错误:", dirPath)
+			return
+		}
+		if dirInfo.IsDir() {
+			err := os.RemoveAll(dirPath)
+			if err != nil {
+				logrus.Error("删除文件夹错误:", err)
+			}
+		}
+	} else {
+		logrus.Error("目录不存在,", err)
+	}
+
+}
+
+// 清理conf备份
+func rmConfBack(path string) {
+	dir, _ := ioutil.ReadDir(path)
+	num := len(dir)
+	backNum := viper.GetInt("back.confNum")
+	for _, k := range dir {
+		if num > backNum {
+			logrus.Debug("清理多余备份:", path+k.Name())
+			err := os.Remove(path + k.Name())
+			if err != nil {
+				return
+			}
+			num--
+		}
+	}
+	return
+}
+
 func main() {
 	logrus.SetLevel(logrus.DebugLevel)
 	// 设置日志输出到什么地方去
@@ -267,6 +310,7 @@ func main() {
 	}
 	initFile()
 	logrus.Info("初始化完成!")
+	logrus.Info("软件版本v1.1!")
 	//go jk()
 	go jk2()
 	go logC()
