@@ -20,6 +20,7 @@ import (
 )
 
 var logPath = "logrus.log"
+var md5Text string
 
 // PathExists 判断一个文件或文件夹是否存在
 // 输入文件路径，根据返回的bool值来判断文件或文件夹是否存在
@@ -75,10 +76,9 @@ func newWithSeconds() *cron.Cron {
 }
 
 // 日志归档
-func logC() {
-	logrus.Info("开启日志归档!")
+func startCorn() {
 	c := newWithSeconds()
-	c.AddFunc("1 1 1 * * ?", func() {
+	_, err := c.AddFunc("1 1 1 * * ?", func() {
 		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -30).Format("20060102"))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := viper.GetString("auxiliary.logPath") + date
@@ -119,6 +119,10 @@ func logC() {
 		}
 		logrus.Debug("重置Nginx日志成功!")
 	})
+	if err != nil {
+		logrus.Error("开启日志归档任务错误!")
+		return
+	}
 	//c.AddFunc("1 1 1 1 * ?", func() {
 	//	err := os.Truncate(logPath, 0)
 	//	if err != nil {
@@ -127,6 +131,27 @@ func logC() {
 	//	}
 	//	logrus.Error("清理软件运行日志成功!")
 	//})
+	_, err = c.AddFunc("1/5 * * * * *", func() {
+		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
+		if err == nil {
+			if md5Text != fileMD5 {
+				// 清理备份
+				rmConfBack(viper.GetString("auxiliary.confPath"))
+				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
+				if err != nil {
+					logrus.Debug("备份文件错误!", err)
+				} else {
+					logrus.Debug("备份文件成功!")
+					md5Text = fileMD5
+				}
+			}
+		}
+	})
+	if err != nil {
+		logrus.Error("开启conf备份任务错误!")
+		return
+	}
+	logrus.Debug("开启corn成功!!!")
 	c.Start()
 }
 
@@ -187,30 +212,6 @@ func FileMD5(filePath string) (string, error) {
 	hash := md5.New()
 	_, _ = io.Copy(hash, file)
 	return hex.EncodeToString(hash.Sum(nil)), nil
-}
-func jk2() {
-	logrus.Info("开启文件监控!")
-	defer func() {
-		logrus.Error("文件监控异常退出!")
-	}()
-	var md5Text string
-	for {
-		time.Sleep(5 * time.Second)
-		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
-		if err == nil {
-			if md5Text != fileMD5 {
-				// 清理备份
-				rmConfBack(viper.GetString("auxiliary.confPath"))
-				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
-				if err != nil {
-					logrus.Debug("备份文件错误!", err)
-				} else {
-					logrus.Debug("备份文件成功!")
-					md5Text = fileMD5
-				}
-			}
-		}
-	}
 }
 func initFile() {
 	filePath, err := PathExists(viper.GetString("auxiliary.confPath"))
@@ -311,8 +312,6 @@ func main() {
 	initFile()
 	logrus.Info("初始化完成!")
 	logrus.Info("软件版本v1.1!")
-	//go jk()
-	go jk2()
-	go logC()
+	go startCorn()
 	select {}
 }
