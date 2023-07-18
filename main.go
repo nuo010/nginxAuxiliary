@@ -79,6 +79,7 @@ func newWithSeconds() *cron.Cron {
 func startCorn() {
 	c := newWithSeconds()
 	_, err := c.AddFunc("1 1 1 * * ?", func() {
+		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
 		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -30).Format("20060102"))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := viper.GetString("auxiliary.logPath") + date
@@ -311,7 +312,7 @@ func main() {
 	}
 	initFile()
 	logrus.Info("初始化完成!")
-	logrus.Info("软件版本v1.1!")
+	logrus.Info("软件版本v1.2")
 	go startCorn()
 	select {}
 }
