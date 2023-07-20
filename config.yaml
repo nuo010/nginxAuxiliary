@@ -7,4 +7,4 @@ auxiliary:
   logPath: /usr/local/nginx/logs/oldlogs/
 back:
   logDay: 15
-  confNum: 10
+  confNum: 30
