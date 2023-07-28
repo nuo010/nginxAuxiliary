@@ -260,7 +260,7 @@ func rmDir(dirPath string) {
 			}
 		}
 	} else {
-		logrus.Error("目录不存在,", err)
+		logrus.Error("目录不存在,", dirPath)
 	}
 
 }
