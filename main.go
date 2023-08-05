@@ -11,10 +11,11 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 )
@@ -80,7 +81,7 @@ func startCorn() {
 	c := newWithSeconds()
 	_, err := c.AddFunc("1 1 1 * * ?", func() {
 		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -30).Format("20060102"))
+		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -viper.GetInt("auxiliary.logDay")).Format("20060102"))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := viper.GetString("auxiliary.logPath") + date
 		err := os.Mkdir(logFilePath, os.ModePerm)
@@ -133,12 +134,13 @@ func startCorn() {
 	//	logrus.Error("清理软件运行日志成功!")
 	//})
 	_, err = c.AddFunc("1/5 * * * * *", func() {
+		logrus.Debug("#################################")
 		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
 		if err == nil {
 			if md5Text != fileMD5 {
 				// 清理备份
 				rmConfBack(viper.GetString("auxiliary.confPath"))
-				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
+				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102")+"\\"+time.Now().Format("150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
 				if err != nil {
 					logrus.Debug("备份文件错误!", err)
 				} else {
@@ -267,13 +269,41 @@ func rmDir(dirPath string) {
 
 // 清理conf备份
 func rmConfBack(path string) {
-	dir, _ := ioutil.ReadDir(path)
-	num := len(dir)
+	var files []string
+	var dirList []string
+	//dir, _ := ioutil.ReadDir(path)
+	//num := len(dir)
+	//backNum := viper.GetInt("back.confNum")
+	//for _, k := range dir {
+	//	if num > backNum {
+	//		logrus.Debug("清理多余备份:", path+k.Name())
+	//		err := os.Remove(path + k.Name())
+	//		if err != nil {
+	//			return
+	//		}
+	//		num--
+	//	}
+	//}
+	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		files = append(files, path)
+		return nil
+	})
+	if err != nil {
+		return
+	}
+	for _, file := range files {
+		if file != path {
+			dirName := file[strings.LastIndex(file, "\\")+1:]
+			dirList = append(dirList, dirName)
+		}
+	}
+	sort.Strings(dirList)
+	num := len(dirList)
 	backNum := viper.GetInt("back.confNum")
-	for _, k := range dir {
+	for _, k := range dirList {
 		if num > backNum {
-			logrus.Debug("清理多余备份:", path+k.Name())
-			err := os.Remove(path + k.Name())
+			logrus.Debug("清理多余备份:", path+k)
+			err := os.Remove(path + k)
 			if err != nil {
 				return
 			}
@@ -312,7 +342,7 @@ func main() {
 	}
 	initFile()
 	logrus.Info("初始化完成!")
-	logrus.Info("软件版本v1.2")
+	logrus.Info("软件版本v1.3")
 	go startCorn()
 	select {}
 }

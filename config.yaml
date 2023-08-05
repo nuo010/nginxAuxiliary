@@ -6,5 +6,5 @@ auxiliary:
   confPath: /usr/local/nginx/conf/back/
   logPath: /usr/local/nginx/logs/oldlogs/
 back:
-  logDay: 15
-  confNum: 50
+  logDay: 30
+  confNum: 30
