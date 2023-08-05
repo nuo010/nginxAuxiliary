@@ -91,20 +91,26 @@ func startCorn() {
 		} else {
 			logrus.Debug("创建Nginx归档目录成功!,", logFilePath)
 		}
-		err = os.Rename(viper.GetString("nginx.logPath")+"/access.log", logFilePath+"/access.log")
+		accFilePath := viper.GetString("nginx.logPath") + "/access.log"
+		accFileInfo, _ := os.Stat(accFilePath)
+		err = os.Rename(accFilePath, logFilePath+"/access.log")
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx access日志错误!")
 			return
 		}
 		logrus.Debug("归档access日志成功!")
-		err = os.Rename(viper.GetString("nginx.logPath")+"/error.log", logFilePath+"/error.log")
+		logrus.Debug("归档大小:", accFileInfo.Size()/1048576, "MB")
+		errPath := viper.GetString("nginx.logPath") + "/error.log"
+		errFileInfo, _ := os.Stat(errPath)
+		err = os.Rename(errPath, logFilePath+"/error.log")
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx error日志错误!")
 			return
 		}
 		logrus.Debug("归档error日志成功!")
+		logrus.Debug("归档大小:", errFileInfo.Size()/1048576, "MB")
 		// 使用ioutil一次性读取文件
 		data, err := os.ReadFile(viper.GetString("nginx.pidPath"))
 		if err != nil {
@@ -134,13 +140,24 @@ func startCorn() {
 	//	logrus.Error("清理软件运行日志成功!")
 	//})
 	_, err = c.AddFunc("1/5 * * * * *", func() {
-		logrus.Debug("#################################")
 		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
 		if err == nil {
 			if md5Text != fileMD5 {
+				logrus.Debug("#################################")
 				// 清理备份
 				rmConfBack(viper.GetString("auxiliary.confPath"))
-				_, err := CopyFile(viper.GetString("auxiliary.confPath")+time.Now().Format("20060102")+"\\"+time.Now().Format("150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
+				backPath := viper.GetString("auxiliary.confPath") + time.Now().Format("20060102") + "/"
+				backFlag, _ := PathExists(backPath)
+				if !backFlag {
+					err := os.Mkdir(backPath, os.ModePerm)
+					if err != nil {
+						logrus.Error("创建Conf归档目录失败!", err)
+						return
+					} else {
+						logrus.Debug("创建Conf归档目录成功!,", backPath)
+					}
+				}
+				_, err = CopyFile(backPath+time.Now().Format("150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
 				if err != nil {
 					logrus.Debug("备份文件错误!", err)
 				} else {
