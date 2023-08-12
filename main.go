@@ -264,9 +264,10 @@ func initFile() {
 	}
 }
 func rmDir(dirPath string) {
+	logrus.Debug("删除文件夹,", dirPath)
 	exists, err := PathExists(dirPath)
 	if err == nil && exists {
-		logrus.Debug("删除文件夹,", dirPath)
+		logrus.Debug("开始删除文件夹,", dirPath)
 		dirInfo, err := os.Stat(dirPath)
 		if err != nil {
 			logrus.Error("读取目录错误:", dirPath)
