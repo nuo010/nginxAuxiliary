@@ -36,7 +36,7 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-// 新的文件, 旧文件
+// CopyFile 新的文件, 旧文件
 func CopyFile(dstFileName string, srcFileName string) (written int64, err error) {
 	_, _ = os.Create(dstFileName)
 	file1, _ := os.ReadFile(srcFileName)
