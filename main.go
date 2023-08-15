@@ -81,7 +81,7 @@ func startCorn() {
 	c := newWithSeconds()
 	_, err := c.AddFunc("1 1 1 * * ?", func() {
 		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -viper.GetInt("auxiliary.logDay")).Format("20060102"))
+		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -viper.GetInt("back.logDay")).Format("20060102"))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := viper.GetString("auxiliary.logPath") + date
 		err := os.Mkdir(logFilePath, os.ModePerm)
