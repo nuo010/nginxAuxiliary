@@ -62,13 +62,6 @@ func CopyFile(dstFileName string, srcFileName string) (written int64, err error)
 	return int64(len(file1)), nil
 }
 
-func delBack() {
-	files, _ := os.ReadDir("C:\\Users\\Erin\\Desktop\\1")
-	for _, f := range files {
-		fmt.Println(f.Name())
-	}
-}
-
 // 返回一个支持至 秒 级别的 cron
 func newWithSeconds() *cron.Cron {
 	secondParser := cron.NewParser(cron.Second | cron.Minute |
@@ -289,19 +282,6 @@ func rmDir(dirPath string) {
 func rmConfBack(path string) {
 	var files []string
 	var dirList []string
-	//dir, _ := ioutil.ReadDir(path)
-	//num := len(dir)
-	//backNum := viper.GetInt("back.confNum")
-	//for _, k := range dir {
-	//	if num > backNum {
-	//		logrus.Debug("清理多余备份:", path+k.Name())
-	//		err := os.Remove(path + k.Name())
-	//		if err != nil {
-	//			return
-	//		}
-	//		num--
-	//	}
-	//}
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		files = append(files, path)
 		return nil
