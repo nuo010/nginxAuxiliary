@@ -327,8 +327,10 @@ func main() {
 	// 设置为true则显示日志在代码什么位置打印的
 	//log.SetReportCaller(true)
 
-	// 设置日志以json格式输出， 如果不设置默认以text格式输出
-	logrus.SetFormatter(&logrus.JSONFormatter{})
+	logrus.SetFormatter(&logrus.TextFormatter{
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05", // 设置时间格式
+	})
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
 	viper.AddConfigPath("./")
@@ -340,7 +342,7 @@ func main() {
 	}
 	initFile()
 	logrus.Info("初始化完成!")
-	logrus.Info("软件版本v1.3")
+	logrus.Info("软件版本v1.4")
 	go startCorn()
 	select {}
 }
