@@ -270,6 +270,8 @@ func rmDir(dirPath string) {
 			err := os.RemoveAll(dirPath)
 			if err != nil {
 				logrus.Error("删除文件夹错误:", err)
+			} else {
+				logrus.Debug("删除文件夹成功!")
 			}
 		}
 	} else {

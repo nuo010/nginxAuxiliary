@@ -6,5 +6,7 @@ auxiliary:
   confPath: /usr/local/nginx/conf/back/
   logPath: /usr/local/nginx/logs/oldlogs/
 back:
+  # nginx归档后的日志保留几天
   logDay: 30
+  # nginx配置文件变动的备份保留天数
   confNum: 30
