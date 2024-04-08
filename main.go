@@ -20,7 +20,6 @@ import (
 	"time"
 )
 
-var logPath = "logrus.log"
 var md5Text string
 
 // PathExists 判断一个文件或文件夹是否存在
@@ -318,13 +317,22 @@ func main() {
 	// 设置日志输出到什么地方去
 	// 将日志输出到标准输出，就是直接在控制台打印出来。
 	// 先打开一个日志文件
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Println("获取配置文件目录错误!")
+		logrus.Error("获取配置文件目录错误!")
+		return
+	}
+	softwareDir := filepath.Dir(exePath)
+
+	file, err := os.OpenFile(filepath.Join(softwareDir, "logrus.log"), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
 		// 设置将日志输出到文件
 		logrus.SetOutput(file)
 	} else {
 		logrus.Info("打开日志文件失败，默认输出到stderr")
 	}
+	logrus.Debug("软件运行目录:" + softwareDir)
 	//logrus.SetOutput(os.Stdout)
 	// 设置为true则显示日志在代码什么位置打印的
 	//log.SetReportCaller(true)
@@ -335,11 +343,12 @@ func main() {
 	})
 	viper.SetConfigName("config")
 	viper.SetConfigType("yaml")
-	viper.AddConfigPath("./")
+
+	viper.AddConfigPath(softwareDir)
 	err = viper.ReadInConfig()
 	if err != nil {
-		fmt.Println("读取配置文件错误!")
-		logrus.Error("读取配置文件错误!")
+		fmt.Println("读取配置文件错误!" + err.Error())
+		logrus.Error("读取配置文件错误!" + err.Error())
 		return
 	}
 	initFile()
