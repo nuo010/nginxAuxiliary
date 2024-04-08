@@ -138,7 +138,7 @@ func startCorn() {
 				logrus.Debug("#################################")
 				// 清理备份
 				rmConfBack(viper.GetString("auxiliary.confPath"))
-				backPath := filepath.Join(viper.GetString("auxiliary.confPath"), time.Now().Format("20060102"), "/")
+				backPath := filepath.Join(viper.GetString("auxiliary.confPath"), time.Now().Format("20060102"))
 				backFlag, _ := PathExists(backPath)
 				if !backFlag {
 					err := os.Mkdir(backPath, os.ModePerm)
@@ -149,7 +149,7 @@ func startCorn() {
 						logrus.Debug("创建Conf归档目录成功!,", backPath)
 					}
 				}
-				_, err = CopyFile(filepath.Join(backPath, time.Now().Format("150405"), path.Ext(viper.GetString("nginx.confPath"))), viper.GetString("nginx.confPath"))
+				_, err = CopyFile(filepath.Join(backPath, time.Now().Format("150405")+path.Ext(viper.GetString("nginx.confPath"))), viper.GetString("nginx.confPath"))
 				if err != nil {
 					logrus.Debug("备份文件错误!", err)
 				} else {
