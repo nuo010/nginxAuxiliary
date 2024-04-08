@@ -73,9 +73,9 @@ func startCorn() {
 	c := newWithSeconds()
 	_, err := c.AddFunc("1 1 1 * * ?", func() {
 		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
-		rmDir(viper.GetString("auxiliary.logPath") + time.Now().AddDate(0, 0, -viper.GetInt("back.logDay")).Format("20060102"))
+		rmDir(filepath.Join(viper.GetString("auxiliary.logPath"), time.Now().AddDate(0, 0, -viper.GetInt("back.logDay")).Format("20060102")))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
-		logFilePath := viper.GetString("auxiliary.logPath") + date
+		logFilePath := filepath.Join(viper.GetString("auxiliary.logPath"), date)
 		err := os.Mkdir(logFilePath, os.ModePerm)
 		if err != nil {
 			logrus.Error("创建Nginx归档目录失败!")
@@ -83,9 +83,9 @@ func startCorn() {
 		} else {
 			logrus.Debug("创建Nginx归档目录成功!,", logFilePath)
 		}
-		accFilePath := viper.GetString("nginx.logPath") + "/access.log"
+		accFilePath := filepath.Join(viper.GetString("nginx.logPath"), "access.log")
 		accFileInfo, _ := os.Stat(accFilePath)
-		err = os.Rename(accFilePath, logFilePath+"/access.log")
+		err = os.Rename(accFilePath, filepath.Join(logFilePath, "access.log"))
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx access日志错误!")
@@ -93,9 +93,9 @@ func startCorn() {
 		}
 		logrus.Debug("归档access日志成功!")
 		logrus.Debug("归档大小:", accFileInfo.Size()/1048576, "MB")
-		errPath := viper.GetString("nginx.logPath") + "/error.log"
+		errPath := filepath.Join(viper.GetString("nginx.logPath"), "error.log")
 		errFileInfo, _ := os.Stat(errPath)
-		err = os.Rename(errPath, logFilePath+"/error.log")
+		err = os.Rename(errPath, filepath.Join(logFilePath, "error.log"))
 		if err != nil {
 			fmt.Println(err)
 			logrus.Error("归档Nginx error日志错误!")
@@ -138,7 +138,7 @@ func startCorn() {
 				logrus.Debug("#################################")
 				// 清理备份
 				rmConfBack(viper.GetString("auxiliary.confPath"))
-				backPath := viper.GetString("auxiliary.confPath") + time.Now().Format("20060102") + "/"
+				backPath := filepath.Join(viper.GetString("auxiliary.confPath"), time.Now().Format("20060102"), "/")
 				backFlag, _ := PathExists(backPath)
 				if !backFlag {
 					err := os.Mkdir(backPath, os.ModePerm)
@@ -149,7 +149,7 @@ func startCorn() {
 						logrus.Debug("创建Conf归档目录成功!,", backPath)
 					}
 				}
-				_, err = CopyFile(backPath+time.Now().Format("150405")+path.Ext(viper.GetString("nginx.confPath")), viper.GetString("nginx.confPath"))
+				_, err = CopyFile(filepath.Join(backPath, time.Now().Format("150405"), path.Ext(viper.GetString("nginx.confPath"))), viper.GetString("nginx.confPath"))
 				if err != nil {
 					logrus.Debug("备份文件错误!", err)
 				} else {
