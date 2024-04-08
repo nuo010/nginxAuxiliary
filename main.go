@@ -279,30 +279,51 @@ func rmDir(dirPath string) {
 
 }
 
-// 清理conf备份
-func rmConfBack(path string) {
-	var files []string
+// 获取指定路径下的所有文件夹名称
+func getDirectories(path string) ([]string, error) {
+	var directories []string
 	var dirList []string
+	// 打开目标路径
 	err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
-		files = append(files, path)
+		if err != nil {
+			return err
+		}
+		// 如果是文件夹，则将其名称添加到列表中
+		if info.IsDir() {
+			directories = append(directories, info.Name())
+		}
 		return nil
 	})
+
 	if err != nil {
-		return
+		return nil, err
 	}
-	for _, file := range files {
-		if file != path {
-			dirName := file[strings.LastIndex(file, "\\")+1:]
-			dirList = append(dirList, dirName)
+	baseName := filepath.Base(path)
+	for _, dir := range directories {
+		if dir != baseName {
+			dirList = append(dirList, dir)
 		}
+	}
+	return dirList, nil
+}
+
+// 清理conf备份
+func rmConfBack(path string) {
+	var dirList []string
+	dirList, err := getDirectories(path)
+	if err != nil {
+		fmt.Println("获取指定路径下的文件夹名称失败:", err.Error())
+		logrus.Error("获取指定路径下的文件夹名称失败:", err.Error())
+		return
 	}
 	sort.Strings(dirList)
 	num := len(dirList)
 	backNum := viper.GetInt("back.confNum")
 	for _, k := range dirList {
 		if num > backNum {
-			logrus.Debug("清理多余备份:", path+k)
-			err := os.Remove(path + k)
+			fullPath := filepath.Join(path, k)
+			logrus.Debug("清理多余备份:", fullPath)
+			err := os.Remove(fullPath)
 			if err != nil {
 				return
 			}
