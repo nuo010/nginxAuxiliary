@@ -72,7 +72,9 @@ func newWithSeconds() *cron.Cron {
 func startCorn() {
 	c := newWithSeconds()
 	_, err := c.AddFunc("1 1 1 * * ?", func() {
-		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
+		logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
+		logrus.Debug("时间:", time.Now().Format("2006-01-02 15:04:05"))
+		// 清理过期的备份logs文件
 		rmDir(filepath.Join(viper.GetString("auxiliary.logPath"), time.Now().AddDate(0, 0, -viper.GetInt("back.logDay")).Format("20060102")))
 		date := time.Now().AddDate(0, 0, -1).Format("20060102")
 		logFilePath := filepath.Join(viper.GetString("auxiliary.logPath"), date)
@@ -110,7 +112,7 @@ func startCorn() {
 			logrus.Error("读取nginx pid 错误")
 			return
 		}
-		// 打印文件内容
+		// 打印文件内容, 这里只适用于linux
 		err = exec.Command("bash", "-c", "kill -USR1 "+strings.Replace(string(data), "\n", "", 1)).Run()
 		if err != nil {
 			logrus.Error("调用nginx打印日志命令错误!")
@@ -123,19 +125,13 @@ func startCorn() {
 		logrus.Error("开启日志归档任务错误!")
 		return
 	}
-	//c.AddFunc("1 1 1 1 * ?", func() {
-	//	err := os.Truncate(logPath, 0)
-	//	if err != nil {
-	//		logrus.Error("清理日志错误!")
-	//		return
-	//	}
-	//	logrus.Error("清理软件运行日志成功!")
-	//})
+	// 开启配置文件监控备份
 	_, err = c.AddFunc("1/5 * * * * *", func() {
 		fileMD5, err := FileMD5(viper.GetString("nginx.confPath"))
 		if err == nil {
 			if md5Text != fileMD5 {
-				logrus.Debug("#################################")
+				logrus.Debug("↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓")
+				logrus.Debug("时间:", time.Now().Format("2006-01-02 15:04:05"))
 				// 清理备份
 				rmConfBack(viper.GetString("auxiliary.confPath"))
 				backPath := filepath.Join(viper.GetString("auxiliary.confPath"), time.Now().Format("20060102"))
@@ -299,6 +295,7 @@ func getDirectories(path string) ([]string, error) {
 		return nil, err
 	}
 	baseName := filepath.Base(path)
+	// 排查传入路径的文件夹名称
 	for _, dir := range directories {
 		if dir != baseName {
 			dirList = append(dirList, dir)
@@ -374,7 +371,7 @@ func main() {
 	}
 	initFile()
 	logrus.Info("初始化完成!")
-	logrus.Info("软件版本v1.4")
+	logrus.Info("软件版本v1.5")
 	go startCorn()
 	select {}
 }
